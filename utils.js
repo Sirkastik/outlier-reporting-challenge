@@ -3,9 +3,9 @@ module.exports = {
   generateCourseReport,
 };
 
-function filterStudentGrades(allStudentGrades, student) {
+function filterStudentGrades(allStudentGrades, studentId) {
   return allStudentGrades.filter(
-    (studentGrade) => studentGrade.id === student.id
+    (studentGrade) => studentGrade.id === studentId
   );
 }
 
@@ -16,13 +16,19 @@ function generateCourseReport(allStudentGrades) {
   return courseNames.map((courseName) => {
     const allCourseGrades = allStudentGrades
       .filter((studentGrade) => studentGrade.course === courseName)
-      .map((studentGrade) => studentGrade.grade)
-      .sort((a, b) => a - b);
-    const lowestGrade = allCourseGrades[0];
-    const highestGrade = allCourseGrades[allCourseGrades.length - 1];
+      .map((studentGrade) => studentGrade.grade);
+    const { highestGrade, lowestGrade } =
+      getLowestAndHighestGrades(allCourseGrades);
     const averageGrade = calculateAverageGrade(allCourseGrades);
     return { course: courseName, highestGrade, lowestGrade, averageGrade };
   });
+}
+
+function getLowestAndHighestGrades(allCourseGrades) {
+  const sortedGrades = allCourseGrades.sort((a, b) => a - b);
+  const lowestGrade = sortedGrades[0];
+  const highestGrade = sortedGrades[sortedGrades.length - 1];
+  return { lowestGrade, highestGrade };
 }
 
 function calculateAverageGrade(allCourseGrades) {

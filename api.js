@@ -1,6 +1,8 @@
 const { Worker } = require("worker_threads");
 const knex = require("./db");
 
+const ENOENT_ERROR = "ENOENT";
+
 module.exports = {
   getHealth,
   getStudent,
@@ -33,7 +35,7 @@ async function getStudentGradesReport(req, res, next) {
   try {
     const studentId = parseInt(req.params.id);
     const student = await getStudentById(studentId);
-    handleGetGrades(res, student);
+    workerGetGrades(sendStudentGradesReport(res, student), studentId);
   } catch (e) {
     console.log(e);
     res.status(500).end();
@@ -42,7 +44,7 @@ async function getStudentGradesReport(req, res, next) {
 
 async function getCourseGradesReport(req, res, next) {
   try {
-    handleGetGrades(res);
+    workerGetGrades(sendCourseGradesReport(res));
   } catch (e) {
     console.log(e);
     res.status(500).end();
@@ -53,9 +55,29 @@ async function getStudentById(studentId) {
   return await knex("students").where({ id: studentId }).first();
 }
 
-function handleGetGrades(res, student = null) {
+function workerGetGrades(onMessageCallback, studentId = null) {
   const worker = new Worker("./fetch-grades.js", {
-    workerData: { student },
+    workerData: { studentId },
   });
-  worker.on("message", (value) => res.json(value));
+
+  worker.on("message", onMessageCallback);
+
+  worker.on("error", function (error) {
+    if (error.message.startsWith(ENOENT_ERROR)) {
+      throw new Error(
+        "Error reading grades; did you initialize it by running `npm run init-db`?"
+      );
+    }
+    throw new Error(error);
+  });
+}
+
+function sendStudentGradesReport(res, student) {
+  return (studentGrades) => {
+    res.json({ student: { ...student, ...studentGrades } });
+  };
+}
+
+function sendCourseGradesReport(res) {
+  return (courseGradesReport) => res.json(courseGradesReport);
 }

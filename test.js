@@ -41,7 +41,7 @@ tape("getStudentGradesReport", async function (t) {
   const url = `${endpoint}/student/${studentId}/grades`;
   try {
     const { data } = await jsonist.get(url);
-    const hasGradesIncluded = data.student.grades[0].course === "Calculus";
+    const hasGradesIncluded = Object.keys(data.student.grades[0]).includes('grade')
     t.ok(
       hasGradesIncluded,
       "should have fetched the student with their grades"
